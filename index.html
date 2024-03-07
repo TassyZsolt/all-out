@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="css.css"/>
+    <script src="https://code.jquery.com/jquery-3.5.0.min.js"></script>
+    <meta charset="UTF-8">
+    <title>AllOut</title>
+</head>
+<body>
+
+
+<div class="counter-wrapper">
+    <div id="kattintasszamlalo"> Kattintások: 0</div>
+    <div id="idomerő">Idő: 0 másodperc</div>
+</div>
+
+<div id="container">
+    <div>
+        <button id="easy">Könnyű</button>
+    </div>
+    <div>
+        <button id="medium">Közepes</button>
+    </div>
+    <div>
+        <button id="hard">Nehéz</button>
+    </div>
+    <button id="help-button">Segítség</button>
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <p>A játék célja az, hogy minden lámpát kikapcsoljunk a táblán. A táblán található egyes elemekre kattintva
+                megfordítjuk azok állapotát, valamint minden szomszédos elem állapotát is megfordítjuk.
+                Ha az elemek korábban "be" állapotban voltak, akkor most "ki" állapotba kerülnek. Ahhoz, hogy nyerjünk,
+                csak annyit kell tennünk, hogy biztosítjuk az egész tábla ALLOUT állapotát</p>
+        </div>
+    </div>
+    <div>
+        <button id="reset">Véletlenszerű</button>
+    </div>
+</div>
+<!--nevmegadas-->
+<div id="myModal" class="modal2">
+    <div class="modal-content">
+        <form>
+            <label for="playerName">Add meg a neved:</label><br>
+            <input type="text" id="playerName" name="playerName" required><br>
+            <input type="submit" value="Kész">
+        </form>
+    </div>
+</div>
+
+<div class="container2">
+    <canvas id="vaszon" width="500px" height="500px"></canvas>
+
+    <div id="top_list">
+        <h3 style="text-align: center; padding-bottom: 5px">TopLista</h3>
+        <p id="list"></p>
+
+    </div>
+</div>
+
+
+<audio id="background-music" loop>
+    <source src="Elevator%20Music%20(Kevin%20MacLeod)%20-%20Gaming%20Background%20Music%20(HD).mp3" type="audio/mpeg">
+    <source src="Elevator%20Music%20(Kevin%20MacLeod)%20-%20Gaming%20Background%20Music%20(HD).mp3" type="audio/ogg">
+    Your browser does not support the audio element.
+</audio>
+
+<script>
+    let ctx = document.getElementById('vaszon').getContext("2d");
+    const size = 5;
+    const radius = 35;
+    const spacing = 25;
+    const totalWidth = size * (2 * radius + spacing) - spacing;
+    const totalHeight = size * (2 * radius + spacing) - spacing;
+    const startX = (vaszon.width - totalWidth) / 2;
+    const startY = (vaszon.height - totalHeight) / 2;
+
+    const easyGrid = [
+        [true, true, false, false, false],
+        [true, false, false, false, false],
+        [false, false, false, false, false],
+        [false, false, false, false, false],
+        [false, false, false, false, false]
+    ];
+    const mediumGrid = [
+        [true, true, false, false, false],
+        [true, false, false, false, false],
+        [false, false, false, true, false],
+        [false, false, true, true, true],
+        [false, false, false, true, false]
+    ];
+    const hardGrid = [
+        [true, true, false, false, false],
+        [true, false, false, true, false],
+        [false, false, false, true, false],
+        [true, false, true, true, true],
+        [false, false, false, true, false]
+    ];
+
+
+    const backgroundMusic = document.getElementById("background-music");
+
+    function playBackgroundMusic() {
+        backgroundMusic.play();
+    }
+
+    function pauseBackgroundMusic() {
+        backgroundMusic.pause();
+    }
+
+
+    let canvas = document.getElementById("vaszon");
+    let kattintasok = 0;
+    let kattintasszamlalo = document.getElementById("kattintasszamlalo");
+    let startTime = new Date().getTime();
+    let elapsedTime = 0;
+    let idoMeroDiv = document.getElementById("idomerő");
+    let firstClick = true;
+    // Az elemek kiválasztása
+    let helpButton = document.getElementById("help-button");
+    let helpModal = document.getElementById("help-modal");
+    //gombok
+    let closeButton = document.getElementsByClassName("close")[0];
+    let resetButton = document.getElementById("reset");
+    let easyButton = document.getElementById("easy");
+    let mediumButton = document.getElementById("medium");
+    let hardButton = document.getElementById("hard");
+
+    let grid = [];
+    let gameOver = false;
+    let first_fill = true;
+
+    easyButton.addEventListener("click", function () {
+        playBackgroundMusic();
+        for (let row = 0; row < size; row++) {
+            grid[row] = [];
+            for (let col = 0; col < size; col++) {
+                grid[row][col] = easyGrid[row][col];
+                const x = startX + col * (2 * radius + spacing) + radius;
+                const y = startY + row * (2 * radius + spacing) + radius;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = easyGrid[row][col] ? "yellow" : "gray";
+                ctx.fill();
+            }
+        }
+        startTime = new Date().getTime();
+        elapsedTime = 0;
+        idoMeroDiv.innerText = "Idő: 0 másodperc";
+        firstClick = true;
+        kattintasszamlalo.innerText = "Kattintások: 0";
+        kattintasok = 0;
+
+    });
+    mediumButton.addEventListener("click", function () {
+        playBackgroundMusic();
+        for (let row = 0; row < size; row++) {
+            grid[row] = [];
+            for (let col = 0; col < size; col++) {
+                grid[row][col] = mediumGrid[row][col];
+                const x = startX + col * (2 * radius + spacing) + radius;
+                const y = startY + row * (2 * radius + spacing) + radius;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = mediumGrid[row][col] ? "yellow" : "gray";
+                ctx.fill();
+            }
+        }
+        startTime = new Date().getTime();
+        elapsedTime = 0;
+        idoMeroDiv.innerText = "Idő: 0 másodperc";
+        firstClick = true;
+        kattintasszamlalo.innerText = "Kattintások: 0";
+        kattintasok = 0;
+
+    });
+    hardButton.addEventListener("click", function () {
+        playBackgroundMusic();
+        for (let row = 0; row < size; row++) {
+            grid[row] = [];
+            for (let col = 0; col < size; col++) {
+                grid[row][col] = hardGrid[row][col];
+                const x = startX + col * (2 * radius + spacing) + radius;
+                const y = startY + row * (2 * radius + spacing) + radius;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = hardGrid[row][col] ? "yellow" : "gray";
+                ctx.fill();
+            }
+        }
+        startTime = new Date().getTime();
+        elapsedTime = 0;
+        idoMeroDiv.innerText = "Idő: 0 másodperc";
+        firstClick = true;
+        kattintasszamlalo.innerText = "Kattintások: 0";
+        kattintasok = 0;
+
+    });
+
+
+    // A segítség gombra kattintásra a felugró ablak megjelenítése
+    helpButton.onclick = function () {
+        helpModal.style.display = "block";
+    }
+
+    // A bezárás gombra kattintásra a felugró ablak elrejtése
+    closeButton.onclick = function () {
+        helpModal.style.display = "none";
+    }
+
+
+    function updateTimer() {
+        if (!gameOver) {
+            let currentTime = new Date().getTime();
+            elapsedTime = currentTime - startTime;
+            let seconds = Math.floor(elapsedTime / 1000);
+            idoMeroDiv.innerText = "Idő: " + seconds + " másodperc";
+        }
+    }
+
+    function startTimer() {
+        if (firstClick) {
+            firstClick = false;
+            startTime = new Date().getTime();
+            setInterval(updateTimer, 1000);
+        }
+    }
+
+    resetButton.addEventListener("click", function () {
+        playBackgroundMusic();
+        for (let row = 0; row < size; row++) {
+            for (let col = 0; col < size; col++) {
+                grid[row][col] = Math.random() < 0.5;
+                const x = startX + col * (2 * radius + spacing) + radius;
+                const y = startY + row * (2 * radius + spacing) + radius;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = grid[row][col] ? "yellow" : "gray";
+                ctx.fill();
+
+            }
+        }
+        // Az időmérő nullázása
+        startTime = new Date().getTime();
+        elapsedTime = 0;
+        idoMeroDiv.innerText = "Idő: 0 másodperc";
+        firstClick = true;
+        kattintasszamlalo.innerText = "Kattintások: 0";
+        kattintasok = 0;
+        startTimer();
+    });
+
+
+    canvas.addEventListener("click", function (event) {
+        setInterval(updateTimer, 1000);
+        let rect = canvas.getBoundingClientRect();
+        let x = event.clientX - rect.left;
+        let y = event.clientY - rect.top;
+
+        for (let row = 0; row < size; row++) {
+            for (let col = 0; col < size; col++) {
+                const cx = startX + col * (2 * radius + spacing) + radius;
+                const cy = startY + row * (2 * radius + spacing) + radius;
+                const dx = cx - x;
+                const dy = cy - y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < radius) {
+                    flipCell(row, col);
+                    drawBoard();
+                    checkWin();
+                    break;
+                }
+            }
+        }
+        kattintasok++;
+        kattintasszamlalo.innerText = "Kattintások: " + kattintasok;
+        drawBoard();
+        startTimer();
+    });
+
+    function flipCell(row, col) {
+        grid[row][col] = !grid[row][col];
+        if (row > 0) {
+            grid[row - 1][col] = !grid[row - 1][col];
+        }
+        if (row < size - 1) {
+            grid[row + 1][col] = !grid[row + 1][col];
+        }
+        if (col > 0) {
+            grid[row][col - 1] = !grid[row][col - 1];
+        }
+        if (col < size - 1) {
+            grid[row][col + 1] = !grid[row][col + 1];
+        }
+    }
+
+
+    function drawBoard() {
+        ctx.clearRect(0, 0, vaszon.width, vaszon.height);
+        for (let row = 0; row < size; row++) {
+            for (let col = 0; col < size; col++) {
+                const x = startX + col * (2 * radius + spacing) + radius;
+                const y = startY + row * (2 * radius + spacing) + radius;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                if (grid[row][col]) {
+                    ctx.fillStyle = "yellow";
+                } else {
+                    ctx.fillStyle = "gray";
+                }
+                ctx.fill();
+            }
+        }
+    }
+
+    function checkWin() {
+        for (let row = 0; row < size; row++) {
+            for (let col = 0; col < size; col++) {
+                if (grid[row][col]) {
+                    return;
+                }
+            }
+        }
+        kattintasok + 1;
+        gameOver = true;
+        console.log("clickCount: " + kattintasok);
+        let playerName = window.prompt("Játék vége! Add meg a neved:");
+        localStorage.setItem(playerName, (kattintasok + 1));
+        fill_toplist();
+
+    }
+
+    function fill_toplist() {
+        //lista ürítés
+        const list = document.getElementById("list");
+        while (list.hasChildNodes()) {
+            list.removeChild(list.firstChild);
+        }
+        // vegigmegyunk a localStorage mentett elemein es egy uj tombbe pakoljuk. asszociativ tomb
+        var data = [];
+
+        for (var i = 0; i < localStorage.length; i++) {
+            data[i] = [localStorage.key(i), parseInt(localStorage.getItem(localStorage.key(i)))];
+        }
+        // novekvo sorrendbe rendezzuk az elemeket az elert pontszam alapjan
+        data.sort(function (a, b) {
+            return a[1] - b[1];
+        });
+        // a 10 legjobb pontot elert jatekost jelezzuk ki a listan
+        for (let act_data of data.keys()) {
+            if (act_data < 10) {
+                $('#list').append(data[act_data][0] + ' - ' + data[act_data][1] + '<br><hr>');
+
+            }
+        }
+    }
+</script>
+</body>
+</html>
